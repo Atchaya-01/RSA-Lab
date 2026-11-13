@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RSA Lab: learn public-key encryption by doing it</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eaf0f5;--panel:#fff;--ink:#12223a;--muted:#55657d;--line:#cfd9e4;--accent:#0b7a75;--accent-ink:#fff;--hot:#c2410c;--hotbg:#ffedd5;--ok:#166534;--okbg:#dcfce7;--bad:#9f1239;--badbg:#ffe4e6;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1623;--panel:#162133;--ink:#e6edf7;--muted:#97a6bd;--line:#2a3a52;--accent:#3dd6c8;--accent-ink:#06201e;--hot:#fdba74;--hotbg:#3b2412;--ok:#86efac;--okbg:#10301d;--bad:#fda4af;--badbg:#3a1520;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e1623;--panel:#162133;--ink:#e6edf7;--muted:#97a6bd;--line:#2a3a52;--accent:#3dd6c8;--accent-ink:#06201e;--hot:#fdba74;--hotbg:#3b2412;--ok:#86efac;--okbg:#10301d;--bad:#fda4af;--badbg:#3a1520;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px);scroll-behavior:smooth}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.6 "Source Sans 3",system-ui,sans-serif}
+h1,h2{font-family:"Bricolage Grotesque",system-ui,sans-serif;line-height:1.1;margin:0}
+.mono,input,td.n,.chip{font-family:"JetBrains Mono",ui-monospace,monospace}
+header{max-width:1080px;margin:0 auto;padding:44px 20px 12px}
+h1{font-size:clamp(2.4rem,7vw,4.4rem);font-weight:800;letter-spacing:-.03em}
+header p{max-width:62ch;color:var(--muted);font-size:1.12rem;margin:14px 0 0}
+.wrap{max-width:1080px;margin:0 auto;padding:16px 20px 80px;display:grid;grid-template-columns:200px 1fr;gap:32px}
+nav{position:sticky;top:calc(16px + env(safe-area-inset-top,0px));align-self:start;display:flex;flex-direction:column;gap:2px}
+nav a{color:var(--muted);text-decoration:none;padding:7px 12px;border-left:3px solid var(--line);font-weight:600;font-size:.95rem}
+nav a:hover,nav a:focus-visible{color:var(--ink);border-left-color:var(--accent);outline:none}
+section{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px;margin-bottom:20px}
+section h2{font-size:1.55rem;display:flex;align-items:baseline;gap:12px}
+section h2 b{font:500 .95rem "JetBrains Mono",monospace;color:var(--accent-ink);background:var(--accent);border-radius:6px;padding:2px 9px}
+section>p{color:var(--muted);margin:10px 0 16px;max-width:68ch}
+label{display:block;font-weight:600;font-size:.9rem;margin-bottom:4px}
+input,select,button{font-size:1rem;color:var(--ink)}
+input,select{background:var(--bg);border:1.5px solid var(--line);border-radius:8px;padding:9px 12px;width:100%}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+button{cursor:pointer;border:1.5px solid var(--line);background:var(--panel);border-radius:8px;padding:9px 14px;font-weight:600}
+button.go{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button:hover{filter:brightness(1.06)}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;align-items:end}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.eq{background:var(--bg);border-radius:10px;padding:14px 16px;margin-top:14px;font-family:"JetBrains Mono",monospace;font-size:.95rem;overflow-x:auto;line-height:1.9}
+.hl{background:var(--hotbg);color:var(--hot);padding:1px 7px;border-radius:5px;font-weight:600}
+.msg{margin-top:12px;padding:10px 14px;border-radius:8px;font-weight:600}
+.msg.bad{background:var(--badbg);color:var(--bad)}.msg.ok{background:var(--okbg);color:var(--ok)}
+.keys{display:flex;flex-wrap:wrap;gap:12px;margin-top:14px}
+.chip{border:1.5px solid var(--line);border-radius:10px;padding:10px 14px;font-size:.95rem}
+.chip small{display:block;font:600 .8rem "Source Sans 3",sans-serif;color:var(--muted)}
+.chip.priv{border-color:var(--hot)}
+.scroll{overflow-x:auto;margin-top:14px;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{padding:8px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{background:var(--bg);font-weight:600;color:var(--muted)}
+td.n{text-align:right}
+tr:last-child td{border-bottom:0}
+.sub{margin-top:18px;font-weight:600}
+@media (max-width:820px){.wrap{grid-template-columns:1fr}nav{display:none}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<header>
+<h1>RSA Lab</h1>
+<p>Build a real public-key system with small numbers you can check by hand. Change the primes, watch every value update, then try to break your own key.</p>
+</header>
+<div class="wrap">
+<nav aria-label="Lab steps"><a href="#s1">1 Pick primes</a><a href="#s2">2 Build the keys</a><a href="#s3">3 Encrypt</a><a href="#s4">4 Decrypt</a><a href="#s5">5 Break it</a></nav>
+<main>
+
+<section id="s1">
+<h2><b>1</b>Pick two primes</h2>
+<p>Everything in RSA starts with two secret prime numbers, p and q. Their product becomes the public modulus. Use primes between 2 and 1000.</p>
+<div class="row">
+<div><label for="p">Prime p</label><input id="p" type="number" min="2" max="1000" value="61"></div>
+<div><label for="q">Prime q</label><input id="q" type="number" min="2" max="1000" value="53"></div>
+<div class="btns" style="margin:0"><button id="rnd" class="go" type="button">Random primes</button></div>
+</div>
+<div id="m1"></div>
+</section>
+
+<section id="s2">
+<h2><b>2</b>Build the keys</h2>
+<p>n = p × q is public. The totient φ(n) = (p − 1)(q − 1) counts the numbers below n that share no factor with n, and only you can compute it. Choose a public exponent e that shares no factor with φ(n). The private exponent d is the number where e × d leaves remainder 1 when divided by φ(n).</p>
+<div class="row"><div><label for="e">Public exponent e</label><select id="e"></select></div></div>
+<div class="eq" id="calc"></div>
+<div class="sub">Extended Euclid: finding d</div>
+<div class="scroll"><table id="euc"></table></div>
+<div class="keys" id="keys"></div>
+</section>
+
+<section id="s3">
+<h2><b>3</b>Encrypt a message</h2>
+<p>Each character becomes its ASCII number m, then c = m<sup>e</sup> mod n. Anyone can do this with the public key.</p>
+<label for="msg">Message</label><input id="msg" value="Hi!" maxlength="24">
+<div id="m3"></div>
+<div class="scroll"><table id="tbl"></table></div>
+<div class="sub">Show the work for one character</div>
+<div class="row"><div><label for="pick">Character</label><select id="pick"></select></div></div>
+<div class="scroll"><table id="work"></table></div>
+<div class="sub">Your turn: what is c for that character?</div>
+<div class="row"><div><input id="guess" type="number" placeholder="Type your answer" aria-label="Your answer"></div><div class="btns" style="margin:0"><button id="chk" class="go" type="button">Check answer</button></div></div>
+<div id="m3b"></div>
+</section>
+
+<section id="s4">
+<h2><b>4</b>Decrypt it</h2>
+<p>Only the holder of d can reverse the process: m = c<sup>d</sup> mod n. Paste or edit ciphertext numbers separated by spaces.</p>
+<label for="ct">Ciphertext</label><input id="ct" class="mono">
+<div class="btns"><button id="dec" class="go" type="button">Decrypt</button><button id="use" type="button">Use ciphertext from step 3</button></div>
+<div id="m4"></div>
+</section>
+
+<section id="s5">
+<h2><b>5</b>Break your own key</h2>
+<p>An attacker sees only n and e. If they can factor n, they can rebuild d. Run the attack and see how many divisions it takes. Real keys use n with about 617 digits, which is far beyond any factoring method we know.</p>
+<div class="btns"><button id="atk" class="go" type="button">Factor n by trial division</button></div>
+<div id="m5"></div>
+</section>
+
+</main></div>
+<script>
+const $=id=>document.getElementById(id);
+const isPrime=n=>{if(!Number.isInteger(n)||n<2)return false;for(let i=2;i*i<=n;i++)if(n%i===0)return false;return true};
+const gcd=(a,b)=>b?gcd(b,a%b):a;
+const mp=(b,x,m)=>{let r=1;b%=m;while(x>0){if(x&1)r=r*b%m;b=b*b%m;x=Math.floor(x/2)}return r};
+const S={ok:false};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const primes=[];for(let i=101;i<400;i++)if(isPrime(i))primes.push(i);
+
+function msg(id,t,k){$(id).innerHTML=t?`<div class="msg ${k}" role="status">${t}</div>`:""}
+
+function build(){
+ const p=+$("p").value,q=+$("q").value;
+ let err="";
+ if(!isPrime(p))err=`p = ${esc($("p").value)} is not prime. Try 61, 101, or press Random primes.`;
+ else if(!isPrime(q))err=`q = ${esc($("q").value)} is not prime. Try 53, 113, or press Random primes.`;
+ else if(p===q)err="p and q must be different primes, otherwise n is a perfect square and easy to factor.";
+ else if(p*q<=255)err=`n = ${p*q} is too small to hold an ASCII character. Pick primes whose product is above 255.`;
+ if(err){S.ok=false;msg("m1",err,"bad");["calc","keys"].forEach(i=>$(i).innerHTML="");$("euc").innerHTML="";$("tbl").innerHTML="";$("work").innerHTML="";return}
+ msg("m1",`Good: both are prime. n = ${p} × ${q} = ${p*q}.`,"ok");
+ const n=p*q,phi=(p-1)*(q-1);
+ const cands=[];for(let x=3;x<phi&&cands.length<12;x+=2)if(gcd(x,phi)===1)cands.push(x);
+ if(65537<phi&&gcd(65537,phi)===1)cands.push(65537);
+ const prev=+$("e").value;
+ $("e").innerHTML=cands.map(x=>`<option>${x}</option>`).join("");
+ if(cands.includes(prev))$("e").value=prev;
+ const e=+$("e").value;
+ // extended euclid
+ let r0=phi,r1=e,t0=0,t1=1,rows=[`<tr><th>quotient</th><th>remainder</th><th>t</th></tr>`,`<tr><td class="n">–</td><td class="n">${r0}</td><td class="n">${t0}</td></tr>`,`<tr><td class="n">–</td><td class="n">${r1}</td><td class="n">${t1}</td></tr>`];
+ while(r1){const qq=Math.floor(r0/r1);[r0,r1]=[r1,r0-qq*r1];[t0,t1]=[t1,t0-qq*t1];rows.push(`<tr><td class="n">${qq}</td><td class="n">${r1}</td><td class="n">${t1}</td></tr>`)}
+ const d=((t0%phi)+phi)%phi;
+ $("euc").innerHTML=rows.join("");
+ $("calc").innerHTML=`n = ${p} × ${q} = <span class="hl">${n}</span><br>φ(n) = (${p}−1)(${q}−1) = ${phi}<br>gcd(${e}, ${phi}) = 1<br>d = ${e}<sup>−1</sup> mod ${phi} = <span class="hl">${d}</span><br>check: ${e} × ${d} mod ${phi} = ${(e*d)%phi}`;
+ $("keys").innerHTML=`<div class="chip"><small>Public key (share it)</small>(e = ${e}, n = ${n})</div><div class="chip priv"><small>Private key (keep it secret)</small>(d = ${d}, n = ${n})</div>`;
+ Object.assign(S,{ok:true,p,q,n,phi,e,d});
+ enc();
+}
+
+function enc(){
+ if(!S.ok)return;
+ const {n,e,d}=S,t=$("msg").value;
+ const bad=[...t].find(ch=>ch.charCodeAt(0)>=n);
+ if(!t){msg("m3","Type a message to encrypt.","bad");$("tbl").innerHTML="";$("work").innerHTML="";S.cts=[];return}
+ if(bad){msg("m3",`Character “${esc(bad)}” has code ${bad.charCodeAt(0)}, which is not below n = ${n}. Use ASCII text or larger primes.`,"bad");$("tbl").innerHTML="";$("work").innerHTML="";S.cts=[];return}
+ msg("m3","","");
+ const chars=[...t];
+ const rows=chars.map(ch=>{const m=ch.charCodeAt(0),c=mp(m,e,n);return{ch,m,c,b:mp(c,d,n)}});
+ S.cts=rows.map(r=>r.c);S.rows=rows;
+ $("tbl").innerHTML=`<tr><th>char</th><th>m</th><th>c = m^${e} mod ${n}</th><th>c^${d} mod ${n}</th><th>back</th></tr>`+rows.map(r=>`<tr><td>${esc(r.ch)}</td><td class="n">${r.m}</td><td class="n"><span class="hl">${r.c}</span></td><td class="n">${r.b}</td><td>${esc(String.fromCharCode(r.b))}</td></tr>`).join("");
+ const cur=$("pick").value;
+ $("pick").innerHTML=chars.map((ch,i)=>`<option value="${i}">${i+1}: ${esc(ch)}</option>`).join("");
+ if(cur&&+cur<chars.length)$("pick").value=cur;
+ work();
+ $("ct").value=S.cts.join(" ");
+}
+
+function work(){
+ if(!S.ok||!S.rows)return;
+ const r=S.rows[+$("pick").value||0];if(!r)return;
+ const {n,e}=S,bits=e.toString(2);
+ let acc=1,h=`<tr><th>bit</th><th>square</th><th>multiply by ${r.m}</th><th>result mod ${n}</th></tr>`;
+ for(const b of bits){acc=acc*acc%n;let mul="–";if(b==="1"){acc=acc*r.m%n;mul="yes"}h+=`<tr><td class="n">${b}</td><td>yes</td><td>${mul}</td><td class="n">${acc}</td></tr>`}
+ $("work").innerHTML=h;
+ S.cur=r.c;msg("m3b","","");
+}
+
+$("chk").onclick=()=>{
+ if(!S.ok||S.cur==null)return;
+ const g=$("guess").value;
+ if(g==="")return msg("m3b","Type a number first.","bad");
+ msg("m3b",+g===S.cur?"Correct. You computed the same ciphertext as the lab.":`Not yet. Walk down the table above: for each bit, square the result, then multiply by m when the bit is 1, always reducing mod ${S.n}.`,+g===S.cur?"ok":"bad");
+};
+
+$("dec").onclick=()=>{
+ if(!S.ok)return;
+ const parts=$("ct").value.trim().split(/\s+/).map(Number);
+ if(!parts.length||parts.some(x=>!Number.isInteger(x)||x<0||x>=S.n))return msg("m4",`Enter whole numbers between 0 and ${S.n-1}, separated by spaces.`,"bad");
+ const out=parts.map(c=>String.fromCharCode(mp(c,S.d,S.n))).join("");
+ msg("m4",`Plaintext: <span class="mono">${esc(out)}</span>`,"ok");
+};
+$("use").onclick=()=>{if(S.cts){$("ct").value=S.cts.join(" ")}};
+
+$("atk").onclick=()=>{
+ if(!S.ok)return;
+ const n=S.n,t0=performance.now();let steps=0,f=0;
+ for(let i=2;i*i<=n;i++){steps++;if(n%i===0){f=i;break}}
+ const ms=(performance.now()-t0).toFixed(2),o=n/f,phi=(f-1)*(o-1);
+ msg("m5",`Found n = ${f} × ${o} after ${steps} division${steps>1?"s":""} (${ms} ms). The attacker computes φ = ${phi}, then d = ${S.d}, the same private key. With a 2048-bit n this loop would need more steps than there are atoms in the universe.`,"bad");
+};
+
+$("rnd").onclick=()=>{let a=primes[Math.random()*primes.length|0],b;do{b=primes[Math.random()*primes.length|0]}while(b===a);$("p").value=a;$("q").value=b;build()};
+["p","q"].forEach(i=>$(i).addEventListener("input",build));
+$("e").addEventListener("change",build);
+$("msg").addEventListener("input",enc);
+$("pick").addEventListener("change",work);
+build();
+</script>
+</body>
+</html>
